@@ -1,0 +1,26 @@
+name: Sync showtimes to Airtable
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # hourly, offset to avoid the top-of-hour stampede
+  workflow_dispatch: {}    # manual trigger
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run sync
+        env:
+          AIRTABLE_PAT: ${{ secrets.AIRTABLE_PAT }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE: Showtimes
+        run: python3 sync_to_airtable.py
