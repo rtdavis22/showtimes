@@ -9,8 +9,12 @@ import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-API_URL = "https://drafthouse.com/s/mother/v2/schedule/market/sf"
-TICKET_URL_TEMPLATE = "https://drafthouse.com/ticketing/session/{session_id}"
+MARKET_SLUG = "sf"
+API_URL = f"https://drafthouse.com/s/mother/v2/schedule/market/{MARKET_SLUG}"
+TICKET_URL_TEMPLATE = (
+    "https://drafthouse.com/" + MARKET_SLUG +
+    "/show/{slug}?cinemaId={cinema_id}&sessionId={session_id}"
+)
 
 
 def fetch():
@@ -47,7 +51,11 @@ def fetch():
             "year": None,  # not provided by the schedule API
             "cinema": cinema,
             "datetime": local_dt.isoformat(timespec="seconds"),
-            "ticket_url": TICKET_URL_TEMPLATE.format(session_id=s["sessionId"]),
+            "ticket_url": TICKET_URL_TEMPLATE.format(
+                slug=s["presentationSlug"],
+                cinema_id=s["cinemaId"],
+                session_id=s["sessionId"],
+            ),
         })
     return rows
 
