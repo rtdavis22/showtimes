@@ -21,7 +21,8 @@ Schema:
     Showtimes table
         Title       single line text     (as advertised by the cinema)
         Year        number (integer)
-        Cinema      single select: Roxie, Alamo Drafthouse New Mission,
+        Cinema      single select: Roxie, Balboa Theater,
+                                   Alamo Drafthouse New Mission,
                                    Alamo Drafthouse Mountain View,
                                    Alamo Drafthouse Valley Fair
         Showtime    date with time (display tz: America/Los_Angeles)
@@ -53,7 +54,9 @@ import urllib.request
 from datetime import datetime, timezone
 
 import tmdb
-from scrapers import alamo, roxie
+from scrapers import alamo, balboa, roxie
+
+SCRAPERS = [alamo, balboa, roxie]
 
 API_BASE = "https://api.airtable.com/v0"
 BATCH_SIZE = 10  # Airtable bulk-write limit
@@ -277,7 +280,7 @@ def main():
     log = lambda msg: print(msg, file=sys.stderr)
 
     log("scraping…")
-    rows = alamo.fetch() + roxie.fetch()
+    rows = [row for s in SCRAPERS for row in s.fetch()]
     rows = list({r["ticket_url"]: r for r in rows}.values())
     log(f"  {len(rows)} unique showtimes")
 
