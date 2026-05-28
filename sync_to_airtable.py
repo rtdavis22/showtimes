@@ -21,7 +21,7 @@ Schema:
     Showtimes table
         Title       single line text     (as advertised by the cinema)
         Year        number (integer)
-        Cinema      single select: Roxie, Balboa Theater,
+        Cinema      single select: Roxie, Balboa Theater, Stanford Theatre,
                                    Alamo Drafthouse New Mission,
                                    Alamo Drafthouse Mountain View,
                                    Alamo Drafthouse Valley Fair
@@ -54,9 +54,9 @@ import urllib.request
 from datetime import datetime, timezone
 
 import tmdb
-from scrapers import alamo, balboa, roxie
+from scrapers import alamo, balboa, roxie, stanford
 
-SCRAPERS = [alamo, balboa, roxie]
+SCRAPERS = [alamo, balboa, roxie, stanford]
 
 API_BASE = "https://api.airtable.com/v0"
 BATCH_SIZE = 10  # Airtable bulk-write limit
