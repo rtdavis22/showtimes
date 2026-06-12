@@ -5,9 +5,10 @@ new-mission (SF), mountain-view, valley-fair (Santa Clara).
 """
 
 import json
-import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+
+from scrapers._http import get as _http_get
 
 MARKET_SLUG = "sf"
 API_URL = f"https://drafthouse.com/s/mother/v2/schedule/market/{MARKET_SLUG}"
@@ -18,9 +19,7 @@ TICKET_URL_TEMPLATE = (
 
 
 def fetch():
-    req = urllib.request.Request(API_URL, headers={"User-Agent": "movie-scraper/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.load(resp)["data"]
+    data = json.loads(_http_get(API_URL))["data"]
 
     titles = {p["slug"]: p["show"]["title"] for p in data["presentations"]}
     # Map cinema slug to a display name unambiguous alongside other SF cinemas.

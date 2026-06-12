@@ -19,15 +19,15 @@ URL pointing to the calendar page so the field stays unique per showtime
 import json
 import re
 import urllib.parse
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from html import unescape
 from zoneinfo import ZoneInfo
 
+from scrapers._http import get as _http_get
+
 BASE_URL = "https://www.stanfordtheatre.org/"
 CINEMA_NAME = "Stanford Theatre"
-USER_AGENT = "movie-scraper/1.0"
 _PT = ZoneInfo("America/Los_Angeles")
 
 _MONTHS = {
@@ -54,12 +54,6 @@ _PLUS_QUAL_RE = re.compile(
 _ONLY_QUAL_RE = re.compile(
     r'\(\s*([A-Za-z/]+)\s+only\s*\)', re.I,
 )
-
-
-def _http_get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8", errors="replace")
 
 
 def _current_calendar_urls():

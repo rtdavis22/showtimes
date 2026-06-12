@@ -7,24 +7,18 @@ section. Ticket links go to Roxie's Veezi ticketing platform.
 
 import json
 import re
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from html import unescape
 from zoneinfo import ZoneInfo
 
+from scrapers._http import get as _http_get
+
 _PT = ZoneInfo("America/Los_Angeles")
 
 RSS_URL = "https://roxie.com/upcoming_events"
-USER_AGENT = "movie-scraper/1.0"
 CINEMA_NAME = "Roxie"
-MAX_WORKERS = 8
-
-
-def _http_get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8", errors="replace")
+MAX_WORKERS = 4
 
 
 def _list_film_urls():

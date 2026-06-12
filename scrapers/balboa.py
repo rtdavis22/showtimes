@@ -11,15 +11,15 @@ land more than a week in the past.
 
 import json
 import re
-import urllib.request
 from datetime import date, datetime, timedelta
 from html import unescape
 from zoneinfo import ZoneInfo
 
+from scrapers._http import get as _http_get
+
 SITE_TOKEN = "52wkfzmjpwjjfpz3ye7tz8wscg"
 SESSIONS_URL = f"https://ticketing.uswest.veezi.com/sessions/?siteToken={SITE_TOKEN}"
 CINEMA_NAME = "Balboa Theater"
-USER_AGENT = "movie-scraper/1.0"
 _PT = ZoneInfo("America/Los_Angeles")
 
 _FILM_SPLIT = re.compile(r'<div\s+class="film\s')
@@ -31,12 +31,6 @@ _SESSION_RE = re.compile(
     r'<a\s+href="([^"]+/purchase/\d+[^"]*)"[^>]*>\s*<time[^>]*>\s*([^<]+?)\s*</time>',
     re.S,
 )
-
-
-def _http_get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8", errors="replace")
 
 
 def _infer_year(month, day, today):
