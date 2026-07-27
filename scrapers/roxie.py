@@ -18,12 +18,19 @@ _PT = ZoneInfo("America/Los_Angeles")
 
 RSS_URL = "https://roxie.com/upcoming_events"
 CINEMA_NAME = "Roxie"
+
+# Cinemas this scraper is responsible for; see scrapers.fetch_all.
+CINEMAS = (CINEMA_NAME,)
 MAX_WORKERS = 4
 
 
 def _list_film_urls():
     xml = _http_get(RSS_URL)
-    return re.findall(r"<link>(https://roxie\.com/film/[^<]+)</link>", xml)
+    urls = re.findall(r"<link>(https://roxie\.com/film/[^<]+)</link>", xml)
+    # The feed repeats most films (currently 246 listings for 89 real
+    # showtimes). Dedupe preserving feed order: it drops ~3x of the page
+    # fetches we aim at the WAF that keeps 403ing us.
+    return list(dict.fromkeys(urls))
 
 
 _SHOWTIME_RE = re.compile(
@@ -56,12 +63,21 @@ def _parse_film_page(html, film_url):
             dt = datetime.strptime(f"{d.group(1)} {t.group(1)}", "%B %d, %Y %I:%M %p")
         except ValueError:
             continue
+        # Not-yet-on-sale showtimes render as href="#". Falling back to a bare
+        # film_url isn't enough either — a film's showtimes would then share
+        # one Ticket URL, and that field is the upsert key, so they'd collapse
+        # into a single Airtable record. Qualify with the showtime, as the
+        # Stanford scraper does; servers ignore the fragment.
+        ticket = unescape(u.group(1)).strip() if u else ""
+        if not ticket or ticket.startswith(("#", "javascript:")):
+            ticket = f"{film_url}#{dt.strftime('%Y%m%dT%H%M')}"
+
         rows.append({
             "title": title,
             "year": year,
             "cinema": CINEMA_NAME,
             "datetime": dt.replace(tzinfo=_PT).isoformat(timespec="seconds"),
-            "ticket_url": unescape(u.group(1)) if u else film_url,
+            "ticket_url": ticket,
         })
     return rows
 

@@ -53,10 +53,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+import scrapers
 import tmdb
-from scrapers import alamo, balboa, roxie, stanford
-
-SCRAPERS = [alamo, balboa, roxie, stanford]
 
 API_BASE = "https://api.airtable.com/v0"
 BATCH_SIZE = 10  # Airtable bulk-write limit
@@ -116,12 +114,21 @@ def _paginate(base_id, table, token, fields):
 
 
 def fetch_existing_showtimes(base_id, table, token):
-    """Return {ticket_url: record_id} for every Showtime row."""
+    """Return {ticket_url: {id, cinema, status}} for every Showtime row.
+
+    Cinema and Status come back too because expiry is scoped per-cinema and
+    skips rows already marked Removed.
+    """
     out = {}
-    for rec in _paginate(base_id, table, token, ["Ticket URL"]):
-        tu = rec.get("fields", {}).get("Ticket URL")
+    for rec in _paginate(base_id, table, token, ["Ticket URL", "Cinema", "Status"]):
+        f = rec.get("fields", {})
+        tu = f.get("Ticket URL")
         if tu:
-            out[tu] = rec["id"]
+            out[tu] = {
+                "id": rec["id"],
+                "cinema": f.get("Cinema"),
+                "status": f.get("Status"),
+            }
     return out
 
 
@@ -162,7 +169,15 @@ def resolve_movies(rows, existing_movies, by_source_title, tmdb_token):
             src_to_tmdb[source_title] = by_source_title[source_title.lower()]
             continue
 
-        match = tmdb.search(source_title, tmdb_token, year=hint_year)
+        try:
+            match = tmdb.search(source_title, tmdb_token, year=hint_year)
+        except (urllib.error.URLError, ValueError) as e:
+            # Enrichment is best-effort per the module docstring: on a TMDB
+            # failure the Movie link just stays empty and the showtime still
+            # syncs. Retries are already exhausted inside tmdb.search.
+            print(f"  tmdb lookup failed for {source_title!r}: {e}", file=sys.stderr)
+            unmatched.append(source_title)
+            continue
         if match is None:
             unmatched.append(source_title)
             continue
@@ -280,9 +295,10 @@ def main():
     log = lambda msg: print(msg, file=sys.stderr)
 
     log("scraping…")
-    rows = [row for s in SCRAPERS for row in s.fetch()]
-    rows = list({r["ticket_url"]: r for r in rows}.values())
-    log(f"  {len(rows)} unique showtimes")
+    rows, covered_cinemas, failed = scrapers.fetch_all(log)
+    log(f"  {len(rows)} unique showtimes across {len(covered_cinemas)} cinemas")
+    if not rows:
+        sys.exit("every scraper failed; aborting without touching Airtable")
 
     log("fetching existing Movies…")
     existing_movies, by_source_title = fetch_existing_movies(base_id, movies_table, air_token)
@@ -320,12 +336,30 @@ def main():
         base_id, showtimes_table, air_token, rows, src_to_movie_record, now_iso,
     )
 
+    # Expire only within cinemas actually scraped this run: if Roxie's site was
+    # down, its showtimes must stay Active rather than being declared gone.
+    # Rows already Removed are skipped so we don't re-PATCH the whole archive
+    # every day for no reason.
     current_urls = {r["ticket_url"] for r in rows}
-    removed_ids = [rid for url, rid in existing_showtimes.items() if url not in current_urls]
+    removed_ids = [
+        rec["id"]
+        for url, rec in existing_showtimes.items()
+        if url not in current_urls
+        and rec["cinema"] in covered_cinemas
+        and rec["status"] != "Removed"
+    ]
     log(f"marking {len(removed_ids)} Showtimes as Removed…")
     n_rm = mark_removed(base_id, showtimes_table, air_token, removed_ids)
 
     log(f"done. movies_upserted={len(to_upsert)} showtimes_upserted={n_up} removed={n_rm}")
+
+    # The sync above is real work worth keeping, but a scraper outage still
+    # needs to surface as a red run rather than a quiet partial success.
+    if failed:
+        sys.exit(
+            f"completed with {len(failed)} scraper failure(s): "
+            + ", ".join(f"{n} ({type(e).__name__})" for n, e in failed)
+        )
 
 
 if __name__ == "__main__":

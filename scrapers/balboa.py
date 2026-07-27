@@ -20,6 +20,9 @@ from scrapers._http import get as _http_get
 SITE_TOKEN = "52wkfzmjpwjjfpz3ye7tz8wscg"
 SESSIONS_URL = f"https://ticketing.uswest.veezi.com/sessions/?siteToken={SITE_TOKEN}"
 CINEMA_NAME = "Balboa Theater"
+
+# Cinemas this scraper is responsible for; see scrapers.fetch_all.
+CINEMAS = (CINEMA_NAME,)
 _PT = ZoneInfo("America/Los_Angeles")
 
 _FILM_SPLIT = re.compile(r'<div\s+class="film\s')

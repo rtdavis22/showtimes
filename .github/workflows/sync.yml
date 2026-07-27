@@ -2,7 +2,8 @@ name: Sync showtimes to Airtable
 
 on:
   schedule:
-    - cron: "17 * * * *"   # hourly, offset to avoid the top-of-hour stampede
+    - cron: "17 13 * * *"  # daily 13:17 UTC ≈ 6:17am PT, offset off the hour
+                           # to avoid GitHub's top-of-hour scheduler backlog
   workflow_dispatch: {}    # manual trigger
 
 concurrency:

@@ -28,6 +28,9 @@ from scrapers._http import get as _http_get
 
 BASE_URL = "https://www.stanfordtheatre.org/"
 CINEMA_NAME = "Stanford Theatre"
+
+# Cinemas this scraper is responsible for; see scrapers.fetch_all.
+CINEMAS = (CINEMA_NAME,)
 _PT = ZoneInfo("America/Los_Angeles")
 
 _MONTHS = {

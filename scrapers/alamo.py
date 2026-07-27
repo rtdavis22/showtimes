@@ -17,18 +17,23 @@ TICKET_URL_TEMPLATE = (
     "/show/{slug}?cinemaId={cinema_id}&sessionId={session_id}"
 )
 
+# Map cinema slug to a display name unambiguous alongside other SF cinemas.
+# Alamo's API labels New Mission as just "San Francisco" — too generic.
+CINEMA_NAMES = {
+    "new-mission": "Alamo Drafthouse New Mission",
+    "mountain-view": "Alamo Drafthouse Mountain View",
+    "valley-fair": "Alamo Drafthouse Valley Fair",
+}
+
+# Cinemas this scraper is responsible for; see scrapers.fetch_all.
+CINEMAS = tuple(CINEMA_NAMES.values())
+
 
 def fetch():
     data = json.loads(_http_get(API_URL))["data"]
 
     titles = {p["slug"]: p["show"]["title"] for p in data["presentations"]}
-    # Map cinema slug to a display name unambiguous alongside other SF cinemas.
-    # Alamo's API labels New Mission as just "San Francisco" — too generic.
-    cinema_names = {
-        "new-mission": "Alamo Drafthouse New Mission",
-        "mountain-view": "Alamo Drafthouse Mountain View",
-        "valley-fair": "Alamo Drafthouse Valley Fair",
-    }
+    cinema_names = CINEMA_NAMES
     cinemas = {
         c["id"]: cinema_names.get(c["slug"], f"Alamo Drafthouse {c['name']}")
         for market in data["market"]

@@ -7,7 +7,8 @@ Uses TMDB's /search/movie endpoint. Authenticates with a v4 Bearer token
 import json
 import re
 import urllib.parse
-import urllib.request
+
+from scrapers._http import get as _http_get
 
 _SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
 _POSTER_BASE = "https://image.tmdb.org/t/p/w500"
@@ -35,15 +36,17 @@ def search(title, token, year=None):
     if year:
         params["year"] = str(year)
     url = f"{_SEARCH_URL}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(
+    # Shared helper so TMDB gets the same retry/backoff as the scrapers; an
+    # unretried connection reset here used to abort the entire sync.
+    body = _http_get(
         url,
+        timeout=15,
         headers={
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
         },
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        results = json.load(resp).get("results", [])
+    results = json.loads(body).get("results", [])
     if not results:
         return None
     best = results[0]

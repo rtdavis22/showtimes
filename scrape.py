@@ -14,21 +14,22 @@ Each row has: title, year, cinema, datetime, ticket_url.
 
 import json
 import sys
-from concurrent.futures import ThreadPoolExecutor
 
-from scrapers import alamo, balboa, roxie, stanford
-
-SCRAPERS = [alamo, balboa, roxie, stanford]
+import scrapers
 
 
 def main():
-    with ThreadPoolExecutor(max_workers=len(SCRAPERS)) as pool:
-        futures = [pool.submit(s.fetch) for s in SCRAPERS]
-        rows = [row for f in futures for row in f.result()]
+    log = lambda msg: print(msg, file=sys.stderr)
+    rows, _covered, failed = scrapers.fetch_all(log)
 
     rows.sort(key=lambda r: (r["datetime"], r["cinema"], r["title"]))
     json.dump(rows, sys.stdout, indent=2)
     sys.stdout.write("\n")
+
+    # Emit whatever we got, but exit non-zero so a partial scrape is visible
+    # to whatever is calling us rather than passing silently as success.
+    if failed:
+        sys.exit(f"{len(failed)} scraper(s) failed: " + ", ".join(n for n, _ in failed))
 
 
 if __name__ == "__main__":
