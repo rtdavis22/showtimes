@@ -5,11 +5,11 @@ Env vars:
     AIRTABLE_PAT          PAT with data.records:read/write on the base
     AIRTABLE_BASE_ID      e.g. appXXXXXXXXXXXXXX
     AIRTABLE_TABLE        Showtimes table name (default: "Showtimes")
-    AIRTABLE_MOVIES_TABLE Movies table name    (default: "Movies")
+    AIRTABLE_MOVIES_TABLE Movies table name    (default: "Movies (Showtimes)")
     TMDB_BEARER_TOKEN     TMDB v4 API Read Access Token
 
 Schema:
-    Movies table
+    Movies (Showtimes) table
         Title          single line text  (canonical from TMDB)
         Year           number (integer)
         TMDB ID        number (integer)   <-- upsert key, must be unique
@@ -29,7 +29,7 @@ Schema:
         Ticket URL  url                  <-- upsert key, must be unique
         Status      single select: Active, Removed
         Last Seen   date with time
-        Movie       linked record -> Movies
+        Movie       linked record -> Movies (Showtimes)
 
 Sync semantics:
     1. Scrape all showtimes.
@@ -289,7 +289,7 @@ def main():
     air_token = _env("AIRTABLE_PAT")
     base_id = _env("AIRTABLE_BASE_ID")
     showtimes_table = os.environ.get("AIRTABLE_TABLE", "Showtimes")
-    movies_table = os.environ.get("AIRTABLE_MOVIES_TABLE", "Movies")
+    movies_table = os.environ.get("AIRTABLE_MOVIES_TABLE", "Movies (Showtimes)")
     tmdb_token = _env("TMDB_BEARER_TOKEN")
 
     log = lambda msg: print(msg, file=sys.stderr)
